@@ -1,16 +1,24 @@
 """EIP-7702 current designation, with explicitly non-authoritative log hints."""
-from .abi import address, log_key
+from .abi import address, log_key, validate_log
 from .transport import RpcError
 
-def inspect(rpc, owner, block, logs):
+def inspect(rpc, owner, block, logs, warnings=None):
+    if warnings is None: warnings = []
     code_result = rpc.call('eth_getCode',[owner,block])
     if not isinstance(code_result, str):
         raise RpcError(f'eth_getCode returned {type(code_result).__name__}, expected hex string')
     code = code_result.lower()
     delegated = code.startswith('0xef0100') and len(code)==48
     target = address('0x'+code[8:]) if delegated else None
-    relevant = sorted((log for log in logs if not log.get('removed') and
-                       address(log['address']) == owner),key=log_key)
+    relevant = []
+    for log in logs:
+        try:
+            validate_log(log)
+            if not log.get('removed') and address(log['address']) == owner:
+                relevant.append(log)
+        except (ValueError, KeyError, TypeError):
+            warnings.append('Skipped malformed account activity log')
+    relevant.sort(key=log_key)
     def hint(log):
         return {'block_number':int(log['blockNumber'],16), 'transaction_hash':log['transactionHash']}
     return {'active':delegated, 'delegate':target,

@@ -200,7 +200,7 @@ class GuardTests(unittest.TestCase):
         text = dirty.to_markdown()
         self.assertNotIn('\x1b', text)
         # brackets are backslash-escaped, so the link renders as literal text, not a link
-        self.assertIn('\\[' + OWNER + '\\](https://example.invalid)', text)
+        self.assertIn('\\[' + OWNER + '\\]\\(https://example\\.invalid\\)', text)
 
     def test_null_provider_results_warn_not_crash(self):
         from build_fixture import Synthetic

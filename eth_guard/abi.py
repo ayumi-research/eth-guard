@@ -60,5 +60,22 @@ def human(raw, decimals):
     s = str(raw).zfill(decimals+1)
     return (s[:-decimals]+'.'+s[-decimals:]).rstrip('0').rstrip('.')
 
+def hex_int(value):
+    if not isinstance(value, str) or not re.fullmatch(r'0x[0-9a-fA-F]+', value):
+        raise ValueError('Expected a nonnegative 0x hex integer')
+    return int(value,16)
+
 def log_key(log):
-    return (int(log['blockNumber'],16), int(log['transactionIndex'],16), int(log['logIndex'],16))
+    return tuple(hex_int(log[field]) for field in ('blockNumber','transactionIndex','logIndex'))
+
+def validate_log(log):
+    """Validate evidence before ordering or retaining it for any report field."""
+    if not isinstance(log, dict):
+        raise ValueError('Expected a log object')
+    topics = log['topics']
+    if not isinstance(topics, list) or any(not isinstance(t, str) for t in topics):
+        raise ValueError('Expected a list of non-null topic strings')
+    if not isinstance(log['transactionHash'], str):
+        raise ValueError('Expected a transaction hash string')
+    address(log['address'])
+    return log_key(log)

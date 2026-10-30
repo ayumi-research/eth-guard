@@ -29,7 +29,7 @@ class HttpTransport:
             response.raise_for_status()
             body = response.json()
         except (requests.RequestException, ValueError) as exc:
-            raise RpcError('RPC HTTP/JSON request failed') from exc
+            raise RpcError(f'RPC request failed: {type(exc).__name__}') from exc
         if not isinstance(body, dict) or body.get('id') != self._id or body.get('jsonrpc') != '2.0':
             raise RpcError('Invalid JSON-RPC response envelope')
         if 'error' in body:

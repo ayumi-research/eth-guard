@@ -1,5 +1,5 @@
 """Read the public AllowanceTransfer mapping through its ABI getter."""
-from .abi import address, topic, topic_address, words, call, human, log_key
+from .abi import address, topic, topic_address, words, call, human, log_key, validate_log
 from .transport import RpcError
 
 ADDRESS = '0x000000000022d473030f116ddee9f6b43ac78ba3'
@@ -7,21 +7,18 @@ APPROVAL = topic('Approval(address,address,address,uint160,uint48)')
 PERMIT = topic('Permit(address,address,address,uint160,uint48,uint48)')
 MAX_UINT160 = (1 << 160)-1
 
-def _sortable(log):
-    try:
-        return log_key(log)
-    except (KeyError, TypeError, ValueError):
-        return (1 << 256,)  # malformed entries sort last, then get warned by the parser
-
 def discover(logs, owner, warnings):
     pairs = {}
-    for log in sorted(logs,key=_sortable):
+    for log in logs:
         try:
+            key = validate_log(log)
             ts = log['topics']
             if log.get('removed') or address(log['address']) != ADDRESS or len(ts)!=4: continue
             if ts[0].lower() not in (APPROVAL,PERMIT) or topic_address(ts[1])!=owner: continue
             words(log['data'],2 if ts[0].lower()==APPROVAL else 3)
-            pairs[(topic_address(ts[2]),topic_address(ts[3]))] = log
+            pair = (topic_address(ts[2]),topic_address(ts[3]))
+            if pair not in pairs or key >= log_key(pairs[pair]):
+                pairs[pair] = log
         except (KeyError, ValueError, TypeError):
             warnings.append('Skipped malformed Permit2 log')
     return pairs

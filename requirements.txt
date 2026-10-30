@@ -1,1 +1,3 @@
 requests>=2.31
+# CommonMark renderer for offline output regression tests (not a runtime dependency).
+markdown-it-py>=3.0

@@ -1,8 +1,9 @@
 """Snapshot orchestration and transparent risk rules."""
 from dataclasses import dataclass, asdict
 import json
+import re
 from . import erc20, permit2, delegation, sigs
-from .abi import address, word
+from .abi import address, word, hex_int
 from .transport import RpcError
 
 CHAINS = {1:'mainnet',8453:'base',42161:'arbitrum'}
@@ -45,9 +46,13 @@ class Report:
     def to_markdown(self):
         def escape(value):
             text = ''.join(ch if ch.isprintable() else ' ' for ch in str(value))
+            # Escape provider backslashes before introducing any Markdown escapes.
+            text = text.replace('\\', '\\\\')
+            for punctuation in '`*_{}[]()#+-.!~>|':
+                text = text.replace(punctuation, '\\'+punctuation)
+            # Entities keep HTML and table delimiters literal without an extra slash.
             return (text.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
-                        .replace('|','&#124;').replace('`','\\`').replace('[','\\[')
-                        .replace(']','\\]').replace('\n',' ').replace('\r',' '))
+                        .replace('\\&gt;', '&gt;').replace('\\|','&#124;'))
         lines = ['# eth-guard',f'Address: `{self.address}`',
                  f'Chain: {self.chain} ({self.chain_id}); snapshot block {self.block_number} (`{self.block_hash}`).',
                  f'Log range: {self.from_block}–{self.block_number}. Snapshot timestamp: {self.timestamp}.',
@@ -73,18 +78,29 @@ class Report:
         lines.extend('- '+escape(w) for w in self.limitations+self.warnings)
         return '\n'.join(lines)+'\n'
 
+def _snapshot_block(result):
+    try:
+        if not isinstance(result, dict): raise ValueError('Expected a block object')
+        number, timestamp = hex_int(result['number']), hex_int(result['timestamp'])
+        block_hash = result['hash']
+        if not isinstance(block_hash, str) or not re.fullmatch(r'0x[0-9a-fA-F]{64}', block_hash):
+            raise ValueError('Expected a block hash')
+        return number, timestamp, block_hash.lower()
+    except (KeyError, TypeError, ValueError) as exc:
+        raise RpcError('eth_getBlockByNumber returned malformed snapshot block') from exc
+
 def inspect(owner, rpc, *, chain_id=1, from_block=None, lookback=50000, chunk_size=2000):
     owner = address(owner)
     if chain_id not in CHAINS: raise ValueError('Unsupported chain ID')
     if lookback<=0 or chunk_size<=0: raise ValueError('lookback and chunk_size must be positive')
     actual = rpc.call('eth_chainId',[])
-    if not isinstance(actual, str): raise RpcError(f'eth_chainId returned {type(actual).__name__}, expected hex string')
-    actual = int(actual,16)
+    try:
+        actual = hex_int(actual)
+    except ValueError as exc:
+        raise RpcError('eth_chainId returned malformed hex integer') from exc
     if actual != chain_id: raise ValueError(f'RPC chain {actual} does not match requested chain {chain_id}')
     head = rpc.call('eth_getBlockByNumber',['latest',False])
-    if not isinstance(head, dict) or 'number' not in head or 'timestamp' not in head:
-        raise RpcError('eth_getBlockByNumber returned no block body')
-    end, now = int(head['number'],16),int(head['timestamp'],16)
+    end, now, block_hash = _snapshot_block(head)
     start = max(0,end-lookback+1) if from_block is None else from_block
     if start<0 or start>end: raise ValueError('from_block must be between zero and snapshot block')
     block = hex(end)
@@ -92,7 +108,10 @@ def inspect(owner, rpc, *, chain_id=1, from_block=None, lookback=50000, chunk_si
     def logs(extra):
         found=[]
         for lo in range(start,end+1,chunk_size):
-            found.extend(rpc.call('eth_getLogs',[dict(fromBlock=hex(lo),toBlock=hex(min(end,lo+chunk_size-1)),**extra)]))
+            result = rpc.call('eth_getLogs',[dict(fromBlock=hex(lo),toBlock=hex(min(end,lo+chunk_size-1)),**extra)])
+            if not isinstance(result, list):
+                raise RpcError('eth_getLogs returned a non-list result')
+            found.extend(result)
         return found
     # Discovery failures abort: never silently turn an RPC range failure into an empty inventory.
     approvals = logs({'topics':[erc20.APPROVAL,'0x'+word(owner)]})
@@ -118,10 +137,10 @@ def inspect(owner, rpc, *, chain_id=1, from_block=None, lookback=50000, chunk_si
     for entry in entries:
         entry['risk_rank'],entry['risk_reason'] = risk_rank(entry,now)
     entries.sort(key=lambda e:({'HIGH':0,'MED':1,'LOW':2}[e['risk_rank']],e['token'],e['spender'],e['channel']))
-    delegated = delegation.inspect(rpc,owner,block,activity)
+    delegated = delegation.inspect(rpc,owner,block,activity,warnings)
     signatures = sigs.inspect(rpc,set(t for t,s in epairs)|set(t for t,s in ppairs)|set(sigs.MAJOR_TOKENS[chain_id]),owner,block)
     # Numeric block tags are widely supported. Detect a reorg during collection.
     check = rpc.call('eth_getBlockByNumber',[block,False])
-    if check['hash']!=head['hash']: raise RpcError('Snapshot reorganized during inspection; retry')
-    return Report(owner,chain_id,CHAINS[chain_id],end,head['hash'],now,start,entries,
+    if _snapshot_block(check)!=(end,now,block_hash): raise RpcError('Snapshot reorganized during inspection; retry')
+    return Report(owner,chain_id,CHAINS[chain_id],end,block_hash,now,start,entries,
                   [cache[t] for t in sorted(cache)],delegated,signatures,sorted(set(warnings)),list(LIMITATIONS))

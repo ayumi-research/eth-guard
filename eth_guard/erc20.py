@@ -1,15 +1,9 @@
 """Discover candidate pairs from Approval logs; trust current allowance calls."""
-from .abi import address, call, words, topic, topic_address, human, log_key
+from .abi import address, call, words, topic, topic_address, human, log_key, validate_log
 from .transport import RpcError
 
 APPROVAL = topic('Approval(address,address,uint256)')
 MAX_UINT256 = (1 << 256)-1
-
-def _sortable(log):
-    try:
-        return log_key(log)
-    except (KeyError, TypeError, ValueError):
-        return (1 << 256,)  # malformed entries sort last, then get warned by the parser
 
 def metadata(rpc, token, owner, block, warnings):
     result = {'token': token, 'symbol': None, 'decimals': None,
@@ -40,14 +34,17 @@ def metadata(rpc, token, owner, block, warnings):
 
 def discover(logs, owner, warnings):
     pairs = {}
-    for log in sorted(logs,key=_sortable):
+    for log in logs:
         try:
+            key = validate_log(log)
             ts = log['topics']
             # ERC721 uses the same signature but four indexed topics.
             if log.get('removed') or len(ts) != 3 or ts[0].lower() != APPROVAL: continue
             if topic_address(ts[1]) != owner: continue
             words(log['data'],1)
-            pairs[(address(log['address']),topic_address(ts[2]))] = log
+            pair = (address(log['address']),topic_address(ts[2]))
+            if pair not in pairs or key >= log_key(pairs[pair]):
+                pairs[pair] = log
         except (ValueError, KeyError, TypeError):
             warnings.append('Skipped malformed ERC20 Approval log')
     return pairs

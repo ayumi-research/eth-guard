@@ -23,3 +23,5 @@ htmlcov/
 GATE_FINDINGS.md
 *_brief.md
 GUARD_REPORT.md
+REGATE_VERDICT.md
+PATCH_REPORT.md
