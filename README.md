@@ -106,6 +106,27 @@ that eth-guard is unique or first.
 
 This is a partial snapshot, not a safety assessment. A clean report means "nothing was found in the scanned range with the current rules", not "this wallet is safe". Discovery defaults to 50,000 blocks and can miss older or nonstandard approvals; NFT permissions and unsubmitted signatures are excluded, and Permit2 SignatureTransfer has no standing-allowance inventory. RPC failures can produce warnings or abort inspection; provider dishonesty and state changes after the snapshot remain risks. All spender reputations are currently unknown, and LOW does not mean safe. The report neither audits delegated code nor establishes that wallet keys are uncompromised. Run it as a regular hygiene instrument, alongside — not instead of — revocation tooling and careful signing habits. No single tool is 100% protection.
 
+## Public RPC notes
+
+eth-guard runs against plain JSON-RPC endpoints, and free public providers differ a lot
+in what they accept (verified October 2026; endpoints change without notice — always
+probe before trusting):
+
+- **`https://rpc.mevblocker.io`** — accepts `eth_getLogs` with topic filters and no
+  `address`, and large ranges (50,000+ blocks tested). Worked for both Ethereum
+  mainnet and Base in our scans.
+- **publicnode family** (`*-rpc.publicnode.com`) — requires an `address` in every
+  `eth_getLogs` (rejects topics-only queries) and caps results at 20,000 per call.
+  High-traffic tokens (USDC on Base) exceed that cap within a few hundred blocks.
+- **drpc free tier** — small effective log ranges; error messages can misstate the cap.
+- **1rpc.io** — restricts `eth_getLogs` to a narrow recent-block window.
+- **ankr** — requires an API key.
+
+Practical rule: chunk log scans well below any provider's stated limit, sleep briefly
+between calls (rate limits masquerade as range errors), and prefer topic-filtered
+queries over address-less scans. From v0.1.2, provider rejection reasons are surfaced
+in the error (with URLs and credentials stripped) so failures are self-diagnosing.
+
 ## Protocol references and next steps
 
 - [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702): delegation designation and authorization processing.

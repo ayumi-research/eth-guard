@@ -223,4 +223,37 @@ class GuardTests(unittest.TestCase):
         with self.assertRaises(RpcError):
             inspect(OWNER, BadHead(), from_block=80)
 
+
+class ProviderErrorSurfaceTests(unittest.TestCase):
+    """v0.1.2: provider error messages reach the user, URLs/credentials don't."""
+
+    def test_sanitize_strips_urls_and_flattens(self):
+        from eth_guard.transport import sanitize_provider_message
+        raw = 'query exceeds max results 20000, see https://provider.example/pricing?key=SECRET for details'
+        out = sanitize_provider_message(raw)
+        self.assertNotIn('https://', out)
+        self.assertNotIn('SECRET', out)
+        self.assertIn('query exceeds max results 20000', out)
+        self.assertEqual(out, ' '.join(out.split()))
+
+    def test_sanitize_handles_garbage(self):
+        from eth_guard.transport import sanitize_provider_message
+        self.assertEqual(sanitize_provider_message(None), '')
+        self.assertEqual(sanitize_provider_message(42), '')
+        self.assertEqual(sanitize_provider_message('x' * 500), 'x' * 200)
+
+    def test_http_transport_surfaces_provider_message(self):
+        response = Mock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {'jsonrpc': '2.0', 'id': 1,
+            'error': {'code': -32602, 'message': 'Block range too large https://docs.example.invalid/x?token=abc'}}
+        transport = HttpTransport('https://rpc.example.invalid')
+        transport.session = Mock()
+        transport.session.post.return_value = response
+        with self.assertRaises(RpcError) as ctx:
+            transport.call('eth_getLogs', [{}])
+        self.assertIn('Block range too large', str(ctx.exception))
+        self.assertNotIn('https://', str(ctx.exception))
+        self.assertNotIn('token=abc', str(ctx.exception))
+
 if __name__=='__main__': unittest.main()
