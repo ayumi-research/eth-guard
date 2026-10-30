@@ -1,0 +1,40 @@
+name: CI
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject common secrets in tracked files
+        shell: bash
+        run: |
+          # Do not print matched secret values into CI logs.
+          pattern='-----BEGIN ([A-Z0-9]+ )*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{60,}|xox[baprs]-[A-Za-z0-9-]{20,}|(api[_-]?key|secret|access[_-]?token|auth[_-]?token|password|private[_-]?key)[[:space:]]*[:=][[:space:]]*[[:punct:]]*[A-Za-z0-9_+/=-]{32,}'
+          status=0
+          git grep -l -I -i -E -e "$pattern" -- . || status=$?
+          if [ "$status" -eq 0 ]; then
+            echo 'Potential secret found in the files above; review before merging.' >&2
+            exit 1
+          elif [ "$status" -ne 1 ]; then
+            echo 'Secret scan failed to execute.' >&2
+            exit "$status"
+          fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install -r requirements.txt pytest
+      - run: python -m pip install .
+      - run: python -m pytest -q
+      - run: eth-guard --help
+      - name: Check the requests minimum
+        run: |
+          python -m pip install requests==2.31.0
+          python -m pytest -q

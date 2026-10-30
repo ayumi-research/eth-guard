@@ -1,0 +1,143 @@
+{
+  "address": "0x1111111111111111111111111111111111111111",
+  "block_hash": "0x0000000000000000000000000000000000000000000000000000000000000064",
+  "block_number": 100,
+  "chain": "mainnet",
+  "chain_id": 1,
+  "delegation": {
+    "active": true,
+    "code_kind": "delegated",
+    "delegate": "0x6666666666666666666666666666666666666666",
+    "first_activity_hint": {
+      "block_number": 95,
+      "transaction_hash": "0x000000000000000000000000000000000000000000000000000000000000000a"
+    },
+    "hint_caveat": "Account-emitted logs only; not delegation-change evidence. EIP-7702 emits no standard delegation event.",
+    "last_activity_hint": {
+      "block_number": 95,
+      "transaction_hash": "0x000000000000000000000000000000000000000000000000000000000000000a"
+    },
+    "note": "This EOA currently executes code written at 0x6666666666666666666666666666666666666666 — verify you recognize it."
+  },
+  "entries": [
+    {
+      "active": true,
+      "amount_human": "115792089237316195423570985008687907853269984665640564039457584007913129.639935",
+      "amount_raw": 115792089237316195423570985008687907853269984665640564039457584007913129639935,
+      "channel": "erc20",
+      "decimals": 6,
+      "expiration": null,
+      "grant_evidence": "latest Approval observed in range; may not be original grant",
+      "granted_at": 1782720000,
+      "nonce": null,
+      "risk_rank": "HIGH",
+      "risk_reason": "Unlimited allowance to an unknown spender",
+      "spender": "0x3333333333333333333333333333333333333333",
+      "spender_reputation": "unknown",
+      "symbol": "TEST",
+      "token": "0x2222222222222222222222222222222222222222",
+      "transaction_hash": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "unlimited": true
+    },
+    {
+      "active": false,
+      "amount_human": "1461501637330902918203684832716283019655932.542975",
+      "amount_raw": 1461501637330902918203684832716283019655932542975,
+      "channel": "permit2",
+      "decimals": 6,
+      "expiration": 1799999999,
+      "grant_evidence": "latest Approval/Permit observed in range; may not be original grant",
+      "granted_at": 1782720000,
+      "nonce": 7,
+      "risk_rank": "LOW",
+      "risk_reason": "Expired or zero allowance",
+      "spender": "0x3333333333333333333333333333333333333333",
+      "spender_reputation": "unknown",
+      "symbol": "TEST",
+      "token": "0x2222222222222222222222222222222222222222",
+      "transaction_hash": "0x0000000000000000000000000000000000000000000000000000000000000006",
+      "unlimited": true
+    },
+    {
+      "active": true,
+      "amount_human": "1.234567",
+      "amount_raw": 1234567,
+      "channel": "erc20",
+      "decimals": 6,
+      "expiration": null,
+      "grant_evidence": "latest Approval observed in range; may not be original grant",
+      "granted_at": 1782720000,
+      "nonce": null,
+      "risk_rank": "LOW",
+      "risk_reason": "Capped allowance with an observed grant at least 180 days old",
+      "spender": "0x4444444444444444444444444444444444444444",
+      "spender_reputation": "unknown",
+      "symbol": "TEST",
+      "token": "0x2222222222222222222222222222222222222222",
+      "transaction_hash": "0x0000000000000000000000000000000000000000000000000000000000000002",
+      "unlimited": false
+    },
+    {
+      "active": true,
+      "amount_human": "0.0001",
+      "amount_raw": 100,
+      "channel": "permit2",
+      "decimals": 6,
+      "expiration": 1800000100,
+      "grant_evidence": "latest Approval/Permit observed in range; may not be original grant",
+      "granted_at": 1782720000,
+      "nonce": 1,
+      "risk_rank": "LOW",
+      "risk_reason": "Capped allowance with an observed grant at least 180 days old",
+      "spender": "0x4444444444444444444444444444444444444444",
+      "spender_reputation": "unknown",
+      "symbol": "TEST",
+      "token": "0x2222222222222222222222222222222222222222",
+      "transaction_hash": "0x0000000000000000000000000000000000000000000000000000000000000007",
+      "unlimited": false
+    }
+  ],
+  "from_block": 80,
+  "limitations": [
+    "Discovery is limited to logs in the fetched range; this is not a complete lifetime inventory.",
+    "Nonstandard tokens and silent allowance changes may be missed. NFT approvals are excluded.",
+    "Unsubmitted signatures and delegation-change history are not observable in this report.",
+    "Grant times are the latest matching events in range, not proven original authorization times.",
+    "Spender reputation is unknown; LOW does not mean safe."
+  ],
+  "signatures": {
+    "note": "Unsubmitted ERC-2612, DAI-style and Permit2 signatures cannot be enumerated by RPC. Getter probes do not prove permit support. Executed permits are reflected in current allowances.",
+    "open_signatures": "not_observable",
+    "tokens": [
+      {
+        "domain_separator": "0x000000000000000000000000000000000000000000000000000000000000007b",
+        "nonce": 4,
+        "status": "permit_style_getters_present",
+        "token": "0x2222222222222222222222222222222222222222"
+      },
+      {
+        "domain_separator": null,
+        "nonce": null,
+        "status": "unsupported_or_unavailable",
+        "token": "0x6b175474e89094c44da98b954eedeac495271d0f"
+      },
+      {
+        "domain_separator": null,
+        "nonce": null,
+        "status": "unsupported_or_unavailable",
+        "token": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+      }
+    ]
+  },
+  "timestamp": 1800000000,
+  "tokens": [
+    {
+      "balance_human": "2.5",
+      "balance_raw": 2500000,
+      "decimals": 6,
+      "symbol": "TEST",
+      "token": "0x2222222222222222222222222222222222222222"
+    }
+  ],
+  "warnings": []
+}

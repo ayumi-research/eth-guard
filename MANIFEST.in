@@ -1,0 +1,6 @@
+include LICENSE README.md SECURITY.md ROADMAP.md requirements.txt
+include test_eth_guard.py build_fixture.py
+include fixtures/record.py
+recursive-include eth_guard/fixtures *.json
+exclude GATE_FINDINGS.md GUARD_REPORT.md PUBLISH_REPORT.md
+exclude *_brief.md

@@ -1,0 +1,25 @@
+.venv/
+venv/
+env/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+.env
+.env.*
+!.env.example
+# Local release review and historical task briefs: never commit.
+GATE_FINDINGS.md
+*_brief.md
+GUARD_REPORT.md
